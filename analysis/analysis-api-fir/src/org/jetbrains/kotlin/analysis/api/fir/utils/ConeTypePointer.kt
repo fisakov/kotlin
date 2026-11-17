@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirTypeAliasSymbol
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.ProjectionKind.*
 import org.jetbrains.kotlin.fir.types.ConeClassLikeTypeImpl
+import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 import java.util.IdentityHashMap
 
 /**
@@ -34,32 +35,58 @@ import java.util.IdentityHashMap
  * Type pointers and restored types are cached by identity, which keeps the shape of the original type graph and never merges
  * types which are merely equal. A type is cached only once it is restored, so a type reached again via the supertypes while its
  * restoration is in progress is restored as an equal copy.
+ *
+ * Since a type pointer is cached only once it is created, a cycle which breaks the invariant above would not terminate, so such a
+ * cycle is detected with [inProgressMarker] instead. Restoration needs no such check: a type pointer is published only once it is
+ * created, so the pointers form cycles only through registered captured type constructor pointers, which are restored in two steps.
  */
 internal class ConeTypeRecursionGuard {
-    private val typePointers = IdentityHashMap<ConeKotlinType, ConeTypePointer<*>>()
-    private val restoredTypes = IdentityHashMap<ConeTypePointer<*>, ConeKotlinType?>()
+    /**
+     * The pointers created for types and type constructors, by identity. A type whose pointer is being created maps to
+     * [inProgressMarker] instead.
+     */
+    private val pointerCache = IdentityHashMap<Any, Any>()
 
-    private val capturedConstructorPointers = IdentityHashMap<ConeCapturedTypeConstructor, ConeCapturedTypeConstructorPointer>()
-    private val restoredCapturedConstructors = IdentityHashMap<ConeCapturedTypeConstructorPointer, ConeCapturedTypeConstructor?>()
+    /**
+     * The types and type constructors restored from pointers, by pointer identity. A value may be `null` if the restoration failed.
+     */
+    private val restorationCache = IdentityHashMap<Any, Any?>()
 
-    private val typeVariableConstructorPointers =
-        IdentityHashMap<ConeTypeVariableTypeConstructor, ConeTypeVariableTypeConstructorPointer>()
-    private val restoredTypeVariableConstructors =
-        IdentityHashMap<ConeTypeVariableTypeConstructorPointer, ConeTypeVariableTypeConstructor?>()
+    /**
+     * Marks the types in [pointerCache] whose pointers are being created in the current scope.
+     *
+     * The supertypes of each captured type constructor start a new scope with a fresh marker (see [createSupertypePointers]). A type
+     * reached again from an inner scope is a cycle through [ConeCapturedTypeConstructor.supertypes], which ends at the registered
+     * constructor pointer. A type reached again within a single scope is a cycle which breaks the invariant above.
+     */
+    private var inProgressMarker = Any()
 
     fun <T : ConeKotlinType> createPointer(coneType: T, create: (T) -> ConeTypePointer<T>): ConeTypePointer<T> {
-        @Suppress("UNCHECKED_CAST")
-        return typePointers.getOrPut(coneType) { create(coneType) } as ConeTypePointer<T>
+        val cached = pointerCache[coneType]
+        if (cached is ConeTypePointer<*>) {
+            @Suppress("UNCHECKED_CAST")
+            return cached as ConeTypePointer<T>
+        }
+
+        if (cached === inProgressMarker) {
+            errorWithAttachment("Type pointer creation cycle which does not go through captured type constructor supertypes") {
+                // The type itself is not rendered, as the renderer would follow the same cycle
+                withEntry("typeClass", coneType::class.simpleName)
+            }
+        }
+
+        pointerCache[coneType] = inProgressMarker
+        return create(coneType).also { pointerCache[coneType] = it }
     }
 
     fun <T : ConeKotlinType> restorePointer(pointer: ConeTypePointer<T>, session: KaFirSession): T? {
-        if (pointer in restoredTypes) {
+        if (pointer in restorationCache) {
             @Suppress("UNCHECKED_CAST")
-            return restoredTypes[pointer] as T?
+            return restorationCache[pointer] as T?
         }
 
         val restoredType = pointer.restore(session, guard = this)
-        restoredTypes[pointer] = restoredType
+        restorationCache[pointer] = restoredType
         return restoredType
     }
 
@@ -67,21 +94,39 @@ internal class ConeTypeRecursionGuard {
         constructor: ConeCapturedTypeConstructor,
         builder: KaSymbolByFirBuilder,
     ): ConeCapturedTypeConstructorPointer {
-        capturedConstructorPointers[constructor]?.let { return it }
+        return pointerCache[constructor] as ConeCapturedTypeConstructorPointer?
+            ?: ConeCapturedTypeConstructorPointer(constructor, builder, guard = this)
+    }
 
-        val pointer = ConeCapturedTypeConstructorPointer(constructor, builder, guard = this)
-        // Register the pointer before visiting the supertypes, as they may refer back to the constructor
-        capturedConstructorPointers[constructor] = pointer
-        pointer.supertypePointers = constructor.supertypes?.map { it.createPointer(builder, guard = this) }
-        return pointer
+    /**
+     * Registers the [pointer] of a captured type [constructor] and creates the pointers for the constructor supertypes.
+     *
+     * The pointer is registered first, as the supertypes may refer back to the constructor, e.g., `Recursive<C>` for a captured type
+     * `C`. Such a cycle ends at the registered pointer, so the supertypes start a new scope of [inProgressMarker].
+     */
+    fun createSupertypePointers(
+        constructor: ConeCapturedTypeConstructor,
+        pointer: ConeCapturedTypeConstructorPointer,
+        builder: KaSymbolByFirBuilder,
+    ): List<ConeTypePointer<*>>? {
+        pointerCache[constructor] = pointer
+        val supertypes = constructor.supertypes ?: return null
+
+        val outerMarker = inProgressMarker
+        inProgressMarker = Any()
+        try {
+            return supertypes.map { it.createPointer(builder, guard = this) }
+        } finally {
+            inProgressMarker = outerMarker
+        }
     }
 
     fun restoreCapturedConstructor(pointer: ConeCapturedTypeConstructorPointer, session: KaFirSession): ConeCapturedTypeConstructor? {
-        if (pointer in restoredCapturedConstructors) return restoredCapturedConstructors[pointer]
+        if (pointer in restorationCache) return restorationCache[pointer] as ConeCapturedTypeConstructor?
 
         val constructor = pointer.restoreWithoutSupertypes(session, guard = this)
         // Register the constructor before restoring the supertypes, as they may refer back to it
-        restoredCapturedConstructors[pointer] = constructor
+        restorationCache[pointer] = constructor
         constructor?.supertypes = pointer.supertypePointers?.restore(session, guard = this)
         return constructor
     }
@@ -90,17 +135,19 @@ internal class ConeTypeRecursionGuard {
         constructor: ConeTypeVariableTypeConstructor,
         builder: KaSymbolByFirBuilder,
     ): ConeTypeVariableTypeConstructorPointer {
-        return typeVariableConstructorPointers.getOrPut(constructor) { ConeTypeVariableTypeConstructorPointer(constructor, builder) }
+        return pointerCache.getOrPut(constructor) {
+            ConeTypeVariableTypeConstructorPointer(constructor, builder)
+        } as ConeTypeVariableTypeConstructorPointer
     }
 
     fun restoreTypeVariableConstructor(
         pointer: ConeTypeVariableTypeConstructorPointer,
         session: KaFirSession,
     ): ConeTypeVariableTypeConstructor? {
-        if (pointer in restoredTypeVariableConstructors) return restoredTypeVariableConstructors[pointer]
+        if (pointer in restorationCache) return restorationCache[pointer] as ConeTypeVariableTypeConstructor?
 
         val constructor = pointer.restore(session)
-        restoredTypeVariableConstructors[pointer] = constructor
+        restorationCache[pointer] = constructor
         return constructor
     }
 }
@@ -256,8 +303,8 @@ private class ConeCapturedTypePointer(
 /**
  * A pointer to a [ConeCapturedTypeConstructor], shared by all captured types with this constructor.
  *
- * [supertypePointers] are set by [ConeTypeRecursionGuard] after the pointer is created, and the restored constructor's supertypes
- * are set after the constructor is created, since the supertypes may refer back to the constructor.
+ * The pointer is registered with [ConeTypeRecursionGuard] before its [supertypePointers] are created, and the restored constructor's
+ * supertypes are set after the constructor is created, since the supertypes may refer back to the constructor.
  */
 internal class ConeCapturedTypeConstructorPointer(
     constructor: ConeCapturedTypeConstructor,
@@ -268,8 +315,6 @@ internal class ConeCapturedTypeConstructorPointer(
     private val lowerTypePointer = constructor.lowerType?.createPointer(builder, guard)
     private val projectionPointer = ConeTypeProjectionPointer(constructor.projection, builder, guard)
 
-    var supertypePointers: List<ConeTypePointer<*>>? = null
-
     private val typeParameterSymbolPointer: KaSymbolPointer<KaTypeParameterSymbol>? = run {
         val typeParameterLookupTag = constructor.typeParameterMarker as? ConeTypeParameterLookupTag
         if (typeParameterLookupTag != null) {
@@ -278,6 +323,8 @@ internal class ConeCapturedTypeConstructorPointer(
             null
         }
     }
+
+    val supertypePointers: List<ConeTypePointer<*>>? = guard.createSupertypePointers(constructor, pointer = this, builder)
 
     fun restoreWithoutSupertypes(session: KaFirSession, guard: ConeTypeRecursionGuard): ConeCapturedTypeConstructor? {
         val lowerType = lowerTypePointer?.let { guard.restorePointer(it, session) ?: return null }
