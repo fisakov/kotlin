@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.cli.jvm.index
 
 import org.jetbrains.kotlin.load.java.structure.impl.classFiles.BinaryClassFileHandle
 import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.resolve.jvm.JvmClassFileNames
 import kotlin.concurrent.withLock
 
 /**
@@ -73,15 +74,15 @@ class JvmDependenciesIndexImpl(roots: List<JavaRoot>) : JvmDependenciesIndexBase
         acceptedExtensions: JavaFileExtensions,
         filter: ClassFileFilter?,
     ): Collection<BinaryClassFileHandle> {
-        val fileNameWithoutExtension = classId.relativeClassName.asString().replace('.', '$')
         val results = mutableListOf<BinaryClassFileHandle>()
+        val fileNameWithoutExtension = JvmClassFileNames.fileNameWithoutExtension(classId.relativeClassName)
 
         traverseIndex(classId.packageFqName, acceptedExtensions.rootTypes) { directoryInRoot, root ->
             for (ext in acceptedExtensions) {
                 if (ext.rootType != root.type) continue
 
                 val file = directoryInRoot
-                    .findChild("$fileNameWithoutExtension.${ext.extension}")
+                    .findChild(JvmClassFileNames.fileName(fileNameWithoutExtension, ext.extension))
                     ?.takeIf { it.isValid }
 
                 if (file != null) {
