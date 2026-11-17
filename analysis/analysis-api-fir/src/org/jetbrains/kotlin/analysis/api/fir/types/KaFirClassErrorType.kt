@@ -83,7 +83,7 @@ internal class KaFirClassErrorType(
 
     @KaExperimentalApi
     override fun createPointer(): KaTypePointer<KaClassErrorType> = withValidityAssertion {
-        return KaFirClassErrorTypePointer(coneType, coneDiagnostic, builder)
+        return KaFirClassErrorTypePointer(coneType, coneDiagnostic, builder, ConeTypeRecursionGuard())
     }
 }
 
@@ -91,7 +91,7 @@ private class KaFirClassErrorTypePointer(
     coneType: ConeClassLikeType,
     coneDiagnostic: ConeDiagnostic,
     builder: KaSymbolByFirBuilder,
-    guard: ConeTypeRecursionGuard = ConeTypeRecursionGuard(),
+    guard: ConeTypeRecursionGuard,
 ) : KaTypePointer<KaClassErrorType> {
     private val coneTypePointer: ConeTypePointer<*> = if (coneType !is ConeErrorType) {
         val classLikeSymbol = builder.classifierBuilder.buildClassLikeSymbolByLookupTag(coneType.lookupTag)

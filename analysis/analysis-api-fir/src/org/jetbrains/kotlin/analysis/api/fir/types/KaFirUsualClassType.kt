@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.analysis.api.fir.KaFirSession
 import org.jetbrains.kotlin.analysis.api.fir.KaSymbolByFirBuilder
 import org.jetbrains.kotlin.analysis.api.fir.annotations.KaFirAnnotationListForType
 import org.jetbrains.kotlin.analysis.api.fir.types.qualifiers.UsualClassTypeQualifierBuilder
+import org.jetbrains.kotlin.analysis.api.fir.utils.ConeTypeRecursionGuard
 import org.jetbrains.kotlin.analysis.api.fir.utils.buildAbbreviatedType
 import org.jetbrains.kotlin.analysis.api.fir.utils.createPointer
 import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeToken
@@ -71,13 +72,13 @@ private class KaFirUsualClassTypePointer(
     coneType: ConeClassLikeTypeImpl,
     builder: KaSymbolByFirBuilder,
 ) : KaTypePointer<KaUsualClassType> {
-    private val coneTypePointer = coneType.createPointer(builder)
+    private val coneTypePointer = coneType.createPointer(builder, ConeTypeRecursionGuard())
 
     @KaImplementationDetail
     override fun restore(session: KaSession): KaUsualClassType? = session.withValidityAssertion {
         requireIsInstance<KaFirSession>(session)
 
-        val coneType = coneTypePointer.restore(session) ?: return null
+        val coneType = coneTypePointer.restore(session, ConeTypeRecursionGuard()) ?: return null
         if (coneType.isSomeFunctionType(session.resolutionFacade.useSiteFirSession)) {
             return null
         }

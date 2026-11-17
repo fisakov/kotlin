@@ -152,9 +152,13 @@ internal class ConeTypeRecursionGuard {
     }
 }
 
+/**
+ * Creates a pointer for this type. A nested pointer must be created with the [guard] of the enclosing pointer, as the guard shares
+ * captured and type variable constructors within the whole type. A top-level pointer is created with a fresh guard.
+ */
 internal fun <T : ConeKotlinType> T.createPointer(
     builder: KaSymbolByFirBuilder,
-    guard: ConeTypeRecursionGuard = ConeTypeRecursionGuard(),
+    guard: ConeTypeRecursionGuard,
 ): ConeTypePointer<T> {
     return guard.createPointer(coneType = this) { coneType ->
         @Suppress("UNCHECKED_CAST")
@@ -184,10 +188,12 @@ internal fun <T : ConeKotlinType> T.createPointer(
  */
 internal interface ConeTypePointer<out T : ConeKotlinType> {
     /**
-     * Restores the original type when possible, using a recursion guard to handle recursive types.
-     * Returns `null` if restoration is impossible.
+     * Restores the original type when possible, and returns `null` otherwise.
+     *
+     * A nested pointer must be restored with the [guard] of the enclosing pointer, as cycles through captured type constructor
+     * supertypes end at the constructors registered in the guard. A top-level pointer is restored with a fresh guard.
      */
-    fun restore(session: KaFirSession, guard: ConeTypeRecursionGuard = ConeTypeRecursionGuard()): T?
+    fun restore(session: KaFirSession, guard: ConeTypeRecursionGuard): T?
 }
 
 private class ConeClassLikeTypePointer(
