@@ -20,7 +20,7 @@ class K2JSCompilerArgumentsConfigurator : CommonKlibBasedCompilerArgumentsConfig
         languageVersion: LanguageVersion,
     ): MutableMap<AnalysisFlag<*>, Any> = with(arguments) {
         require(this is K2JSCompilerArguments)
-        if (irPerFile && (moduleKind != MODULE_ES && !targetVersion.supportsPerFileGranularity)) {
+        if (irPerFile && (moduleKind != MODULE_ES || !targetVersion.supportsPerFileGranularity)) {
             reporter.reportError(
                 "Per-file compilation can't be used with any `moduleKind` except `es` (ECMAScript Modules)"
             )
