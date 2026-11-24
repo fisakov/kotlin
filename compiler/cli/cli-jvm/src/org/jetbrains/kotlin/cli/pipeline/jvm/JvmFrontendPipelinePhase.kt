@@ -528,7 +528,7 @@ object JvmFrontendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, J
         }
 
         // REPL updates classpath dynamically
-        val classpathIndexes = JvmClasspathIndexes(configuration)
+        val classpathIndexes = JvmClasspathIndexes(configuration, projectEnvironment.jarFileSystem)
         classpathIndexes.addRoots(roots).indexedRoots.forEach {
             projectEnvironment.addSourcesToClasspath(it.file)
         }

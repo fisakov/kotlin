@@ -161,7 +161,7 @@ class KotlinCoreEnvironment private constructor(
         }
     }
 
-    private val classpathIndexes = JvmClasspathIndexes(configuration)
+    private val classpathIndexes = JvmClasspathIndexes(configuration, projectEnvironment.jarFileSystem)
 
     val packagePartProviders: List<JvmPackagePartProvider>
         field = mutableListOf<JvmPackagePartProvider>()
