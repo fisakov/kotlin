@@ -7,11 +7,11 @@ package org.jetbrains.kotlin.fir.analysis.checkers.syntax
 
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.KtSourceElement
+import org.jetbrains.kotlin.diagnostics.PositioningStrategyKinds
 import org.jetbrains.kotlin.fir.syntax.withSyntax
 import org.jetbrains.kotlin.syntax.KotlinSyntaxTokenIds
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
-import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.requireFeatureSupport
@@ -41,7 +41,7 @@ object FirWhenGuardChecker : FirExpressionSyntaxChecker<FirWhenExpression, PsiEl
 
         source.requireFeatureSupport(
             LanguageFeature.WhenGuards,
-            positioningStrategy = SourceElementPositioningStrategies.WHEN_GUARD,
+            positioningStrategyKind = PositioningStrategyKinds.WHEN_GUARD,
         )
 
         if (element.subjectVariable == null) {
