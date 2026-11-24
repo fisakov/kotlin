@@ -33,7 +33,8 @@ open class LightTreePositioningStrategy : PositioningStrategy() {
 
     @DiagnosticLossRisk
     override fun isValid(element: KtSourceElement): Boolean {
-        return !hasSyntaxErrors(element.lighterASTNode, element.treeStructure)
+        val lightTreeSourceElement = element as KtLightSourceElement
+        return !hasSyntaxErrors(lightTreeSourceElement.lighterASTNode, lightTreeSourceElement.treeStructure)
     }
 }
 
