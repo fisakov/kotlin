@@ -15,6 +15,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
 import org.jetbrains.kotlin.gradle.dsl.multiplatformExtensionOrNull
 import org.jetbrains.kotlin.gradle.plugin.*
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.reportDiagnostic
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinUsageContext.MavenScope.COMPILE
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinUsageContext.MavenScope.RUNTIME
 import org.jetbrains.kotlin.gradle.plugin.mpp.archive.defaultKotlinUsageContextMaybeReplacedWithKar
@@ -179,7 +181,17 @@ abstract class AbstractKotlinTarget(
     private val publicationConfigureActions: DomainObjectSet<Action<MavenPublication>> = project.objects
         .domainObjectSet(Action::class.java) as DomainObjectSet<Action<MavenPublication>>
 
+    private class MavenPublicationCallTrace : Throwable()
+    private val mavenPublicationCallTraces: MutableList<MavenPublicationCallTrace> = mutableListOf()
+
+    internal fun reportMavenPublicationIsNoop() {
+        for (trace in mavenPublicationCallTraces) {
+            project.reportDiagnostic(KotlinToolingDiagnostics.MavenPublicationIgnoredForTargetInKotlinArchive(targetName, trace))
+        }
+    }
+
     override fun mavenPublication(action: Action<MavenPublication>) {
+        mavenPublicationCallTraces.add(MavenPublicationCallTrace())
         publicationConfigureActions.add(action)
     }
 
@@ -194,4 +206,3 @@ abstract class AbstractKotlinTarget(
 
 internal fun KotlinTarget.disambiguateName(simpleName: String) =
     lowerCamelCaseName(targetName, simpleName)
-
