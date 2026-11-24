@@ -685,3 +685,8 @@ internal fun UByte.toLlvmConstUInt8(): ConstUInt8 =
 context(llvm: CodegenLlvmHelpers)
 internal fun String?.toCStringLiteral(): ConstPointer =
         if (this != null) llvm.staticData.cStringLiteral(this) else llvm.nullPointer
+
+internal val NativeBackendContext.hierarchyWillBeLaidOutByFinalLink: Boolean
+    get() = shouldOptimize() && with(config.cachedLibraries) {
+        config.produce.isCache || hasStaticCaches || hasDynamicCaches
+    }
