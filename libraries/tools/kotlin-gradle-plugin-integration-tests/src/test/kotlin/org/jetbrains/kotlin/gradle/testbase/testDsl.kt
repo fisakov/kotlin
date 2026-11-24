@@ -11,7 +11,9 @@ import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.internal.DefaultGradleRunner
+import org.gradle.tooling.BuildAction
 import org.gradle.tooling.GradleConnector
+import org.gradle.tooling.ProjectConnection
 import org.gradle.tooling.events.ProgressEvent
 import org.gradle.tooling.provider.model.ToolingModelBuilder
 import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
@@ -336,7 +338,7 @@ fun getGradleUserHome(): File {
 }
 
 
-private class KotlinTestModelBuilder<T>(
+internal class KotlinTestModelBuilder<T>(
     val name: String,
     val builder: (Project) -> T,
 ) : ToolingModelBuilder {
@@ -395,10 +397,6 @@ fun <T> TestProject.buildModel(
         kotlinDaemonDebugPort = kotlinDaemonDebugPort
     )
 
-    val connector = GradleConnector.newConnector()
-        .forProjectDirectory(gradleRunner.projectDir)
-        .useDistribution(gradleDistributionUri(gradleVersion))
-
     buildScriptInjection {
         val registry = project.serviceOf<ToolingModelBuilderRegistry>()
         val builder = KotlinTestModelBuilder(modelClass.name, builder)
@@ -407,10 +405,9 @@ fun <T> TestProject.buildModel(
 
     assertBuildScriptsDoNotReferenceTestTempDirectories()
     writePathReferencesToGradleProperties()
-    try {
-        val connection = connector.connect()
+    return withToolingConnection { connection ->
         val modelBuilder = connection.model(modelClass)
-        val model = modelBuilder
+        modelBuilder
             .applyIf(progressListener != null) { addProgressListener(progressListener) }
             .forTasks(tasks.toList())
             .withArguments(buildParams)
@@ -418,9 +415,63 @@ fun <T> TestProject.buildModel(
                 environmentVariables.resolve()?.let { setEnvironmentVariables(it) }
             }
             .get()
-        return model
+    }
+}
+
+/**
+ * Opens a Tooling API connection to the test project, closes it after [use] returns,
+ * and shares the distribution selection between the tooling helpers.
+ */
+private fun <T> TestProject.withToolingConnection(
+    use: (ProjectConnection) -> T,
+): T {
+    val connector = GradleConnector.newConnector()
+        .forProjectDirectory(gradleRunner.projectDir)
+        .useDistribution(gradleDistributionUri(gradleVersion))
+    try {
+        return use(connector.connect())
     } finally {
         connector.disconnect()
+    }
+}
+
+internal fun assumeBuildActionsSupported() {
+    Assumptions.assumeFalse(isWindows, "Running build actions is not working on Windows KT-84353")
+}
+
+/**
+ * Runs a [BuildAction] against a real Tooling API connection to the project,
+ * the way an IDE requests models; no task is requested, so the action observes
+ * the configured project only. The connection is closed before returning.
+ */
+fun <T> TestProject.runBuildAction(
+    action: BuildAction<T>,
+    buildOptions: BuildOptions = this.buildOptions,
+    progressListener: ((ProgressEvent) -> Unit)? = null,
+): T {
+    assumeBuildActionsSupported()
+    val buildParams = commonBuildSetup(
+        buildArguments = pathReferenceArguments, // the request travels in the action; the arguments carry the path references
+        buildOptions = buildOptions,
+        enableBuildCacheDebug = false,
+        enableBuildScan = enableBuildScan,
+        enableOfflineMode = enableOfflineMode,
+        enableGradleDaemonMemoryLimitInMb = enableGradleDaemonMemoryLimitInMb,
+        enableKotlinDaemonMemoryLimitInMb = enableKotlinDaemonMemoryLimitInMb,
+        kotlinDaemonIdleTimeout = kotlinDaemonIdleTimeout,
+        addHeapDumpOptions = addHeapDumpOptions,
+        connectSubprocessVMToDebugger = enableGradleDebug.toBooleanFlag(),
+        gradleVersion = gradleVersion,
+        kotlinDaemonDebugPort = kotlinDaemonDebugPort,
+    )
+    assertBuildScriptsDoNotReferenceTestTempDirectories()
+    writePathReferencesToGradleProperties()
+    return withToolingConnection { connection ->
+        // TODO pass the project's environment variables to the action run, like buildModel does
+        connection.action(action)
+            .applyIf(progressListener != null) { addProgressListener(progressListener) }
+            .withArguments(buildParams)
+            .run()
     }
 }
 
