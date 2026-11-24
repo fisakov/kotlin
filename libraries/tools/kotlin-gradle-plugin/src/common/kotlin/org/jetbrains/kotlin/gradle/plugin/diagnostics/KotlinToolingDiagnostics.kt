@@ -2619,6 +2619,9 @@ internal object KotlinToolingDiagnostics {
                         "Remove 'kotlin.compilerVersion' to keep the Build Tools API disabled.",
                     )
                 }
+                .documentationLink(URI("https://kotl.in/build-tools-api-compiler-versions")) { url ->
+                    "Learn more about using a different Kotlin compiler version: $url"
+                }
         }
     }
 
