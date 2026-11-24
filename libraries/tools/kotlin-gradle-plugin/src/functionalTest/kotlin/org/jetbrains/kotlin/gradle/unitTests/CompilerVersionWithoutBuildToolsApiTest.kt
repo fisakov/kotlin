@@ -50,7 +50,8 @@ class CompilerVersionWithoutBuildToolsApiTest {
     fun testCompilationViaBuildToolsApiDoesNotReportCompilerVersion() {
         val project = buildProject(disabledProperty = KOTLIN_JS_RUN_COMPILER_VIA_BUILD_TOOLS_API, disabled = false)
 
-        project.resolveTaskDependencies(":compileKotlinJs")
+        // The test project has no repository with the custom compiler, so resolving it may fail with KotlinCompilerVersionNotFound
+        runCatching { project.resolveTaskDependencies(":compileKotlinJs") }
         project.assertNoDiagnostics(KotlinToolingDiagnostics.KotlinCompilerVersionWithoutBuildToolsApi)
     }
 
