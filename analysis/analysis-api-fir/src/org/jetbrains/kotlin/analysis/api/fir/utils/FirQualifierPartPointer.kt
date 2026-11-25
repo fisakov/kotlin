@@ -6,7 +6,6 @@
 package org.jetbrains.kotlin.analysis.api.fir.utils
 
 import org.jetbrains.kotlin.analysis.api.fir.KaFirSession
-import org.jetbrains.kotlin.analysis.api.fir.KaSymbolByFirBuilder
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildStarProjection
@@ -14,9 +13,9 @@ import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
 import org.jetbrains.kotlin.fir.types.impl.FirQualifierPartImpl
 import org.jetbrains.kotlin.fir.types.impl.FirTypeArgumentListImpl
 
-internal class FirQualifierPartPointer(qualifierPart: FirQualifierPart, builder: KaSymbolByFirBuilder) {
+internal class FirQualifierPartPointer(qualifierPart: FirQualifierPart, analysisSession: KaFirSession) {
     private val name = qualifierPart.name
-    private val typeArgumentListPointer = FirTypeArgumentListPointer(qualifierPart.typeArgumentList, builder)
+    private val typeArgumentListPointer = FirTypeArgumentListPointer(qualifierPart.typeArgumentList, analysisSession)
 
     context(analysisSession: KaFirSession)
     fun restore(): FirQualifierPart? {
@@ -25,9 +24,9 @@ internal class FirQualifierPartPointer(qualifierPart: FirQualifierPart, builder:
     }
 }
 
-private class FirTypeArgumentListPointer(typeArgumentList: FirTypeArgumentList, builder: KaSymbolByFirBuilder) {
+private class FirTypeArgumentListPointer(typeArgumentList: FirTypeArgumentList, analysisSession: KaFirSession) {
     private val typeArgumentPointers = typeArgumentList.typeArguments
-        .map { ConeTypeProjectionPointer(it.toConeTypeProjection(), builder) }
+        .map { ConeTypeProjectionPointer(it.toConeTypeProjection(), analysisSession) }
 
     context(analysisSession: KaFirSession)
     fun restore(): FirTypeArgumentList? {

@@ -513,6 +513,7 @@ public class KaDebugRenderer(
     public companion object {
         private val ignoredPropertyNames = setOf(
             "token",
+            "analysisSession",
             "builder",
             "coneType",
             "analysisContext",

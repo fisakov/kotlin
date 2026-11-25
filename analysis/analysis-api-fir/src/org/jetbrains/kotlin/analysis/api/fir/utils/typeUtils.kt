@@ -245,24 +245,24 @@ private fun <T : ConeKotlinType> T.adjustSupertypeNullability(
     return withNullability(isMarkedNullable || subType.isMarkedNullable, typeContext)
 }
 
+context(analysisSession: KaFirSession)
 internal fun <C : ConeKotlinType, T : KaType> createTypePointer(
     coneType: C,
-    builder: KaSymbolByFirBuilder,
-    typeFactory: (C, KaSymbolByFirBuilder) -> T?,
+    typeFactory: (C, KaFirSession) -> T?,
 ): KaTypePointer<T> {
-    val coneTypePointer = coneType.createPointer(builder)
+    val coneTypePointer = coneType.createPointer()
     return KaGenericTypePointer(coneTypePointer, typeFactory)
 }
 
 private class KaGenericTypePointer<C : ConeKotlinType, T : KaType>(
     private val coneTypePointer: ConeTypePointer<C>,
-    private val typeFactory: (C, KaSymbolByFirBuilder) -> T?,
+    private val typeFactory: (C, KaFirSession) -> T?,
 ) : KaTypePointer<T> {
     override fun restore(session: KaSession): T? {
         requireIsInstance<KaFirSession>(session)
 
         val coneType = coneTypePointer.restore(analysisSession = session) ?: return null
-        return typeFactory(coneType, session.firSymbolBuilder)
+        return typeFactory(coneType, session)
     }
 }
 

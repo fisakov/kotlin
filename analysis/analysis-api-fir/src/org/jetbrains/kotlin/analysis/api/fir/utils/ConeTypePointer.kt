@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.analysis.api.fir.utils
 
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.fir.KaFirSession
-import org.jetbrains.kotlin.analysis.api.fir.KaSymbolByFirBuilder
 import org.jetbrains.kotlin.analysis.api.symbols.KaTypeParameterSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaSymbolPointer
 import org.jetbrains.kotlin.analysis.api.symbols.pointers.restoreSymbol
@@ -125,24 +124,24 @@ private class DelegatingConeTypePointer<T : ConeKotlinType>(private val wrapper:
     }
 }
 
+context(analysisSession: KaFirSession)
 internal fun <T : ConeKotlinType> T.createPointer(
-    builder: KaSymbolByFirBuilder,
     guard: ConeTypeRecursionGuard = ConeTypeRecursionGuard(),
 ): ConeTypePointer<T> {
     return guard.createPointer(coneType = this) { coneType ->
         @Suppress("UNCHECKED_CAST")
         when (coneType) {
             is ConeDynamicType -> ConeDynamicTypePointer
-            is ConeDefinitelyNotNullType -> ConeDefinitelyNotNullTypePointer(coneType, builder, guard)
-            is ConeIntersectionType -> ConeIntersectionTypePointer(coneType, builder, guard)
-            is ConeRawType -> ConeRawTypePointer(coneType, builder, guard)
-            is ConeFlexibleType -> ConeFlexibleTypePointer(coneType, builder, guard)
-            is ConeCapturedType -> ConeCapturedTypePointer(coneType, builder, guard)
-            is ConeErrorType -> ConeErrorTypePointer(coneType, builder, guard)
-            is ConeClassLikeType -> ConeClassLikeTypePointer(coneType, builder, guard)
-            is ConeTypeParameterType -> ConeTypeParameterTypePointer(coneType, builder)
-            is ConeTypeVariableType -> ConeTypeVariableTypePointer(coneType, builder)
-            is ConeIntegerLiteralConstantType -> ConeIntegerLiteralConstantTypePointer(coneType, builder, guard)
+            is ConeDefinitelyNotNullType -> ConeDefinitelyNotNullTypePointer(coneType, analysisSession, guard)
+            is ConeIntersectionType -> ConeIntersectionTypePointer(coneType, analysisSession, guard)
+            is ConeRawType -> ConeRawTypePointer(coneType, analysisSession, guard)
+            is ConeFlexibleType -> ConeFlexibleTypePointer(coneType, analysisSession, guard)
+            is ConeCapturedType -> ConeCapturedTypePointer(coneType, analysisSession, guard)
+            is ConeErrorType -> ConeErrorTypePointer(coneType, analysisSession, guard)
+            is ConeClassLikeType -> ConeClassLikeTypePointer(coneType, analysisSession, guard)
+            is ConeTypeParameterType -> ConeTypeParameterTypePointer(coneType, analysisSession)
+            is ConeTypeVariableType -> ConeTypeVariableTypePointer(coneType, analysisSession)
+            is ConeIntegerLiteralConstantType -> ConeIntegerLiteralConstantTypePointer(coneType, analysisSession, guard)
             is ConeIntegerConstantOperatorType -> ConeIntegerConstantOperatorTypePointer(coneType)
             else -> ConeNeverRestoringTypePointer
         } as ConeTypePointer<T>
@@ -166,17 +165,17 @@ internal interface ConeTypePointer<out T : ConeKotlinType> {
 
 private class ConeClassLikeTypePointer(
     coneType: ConeClassLikeType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
 ) : ConeTypePointer<ConeClassLikeType> {
     private val lookupTag = coneType.lookupTag
-    private val typeArgumentPointers = coneType.typeArguments.map { ConeTypeProjectionPointer(it, builder, guard) }
+    private val typeArgumentPointers = coneType.typeArguments.map { ConeTypeProjectionPointer(it, analysisSession, guard) }
     private val isNullable = coneType.isMarkedNullable
-    private val abbreviatedTypePointer = coneType.abbreviatedType?.createPointer(builder, guard)
-    private val isTypeAlias = lookupTag.toSymbol(builder.rootSession) is FirTypeAliasSymbol
+    private val abbreviatedTypePointer = coneType.abbreviatedType?.createPointer(guard, analysisSession = analysisSession)
+    private val isTypeAlias = lookupTag.toSymbol(analysisSession.firSession) is FirTypeAliasSymbol
 
     // function types-specific attributes
-    private val hasReceiverType = coneType.receiverType(builder.rootSession) != null
+    private val hasReceiverType = coneType.receiverType(analysisSession.firSession) != null
     private val contextParameterNumber = coneType.contextParameterNumberForFunctionType
 
     context(analysisSession: KaFirSession)
@@ -213,9 +212,11 @@ private class ConeClassLikeTypePointer(
 
 private class ConeTypeParameterTypePointer(
     coneType: ConeTypeParameterType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
 ) : ConeTypePointer<ConeTypeParameterType> {
-    private val typeParameterPointer = builder.classifierBuilder.buildTypeParameterSymbol(coneType.lookupTag.symbol).createPointer()
+    private val typeParameterPointer = analysisSession.firSymbolBuilder.classifierBuilder
+        .buildTypeParameterSymbol(coneType.lookupTag.symbol)
+        .createPointer()
     private val isNullable = coneType.isMarkedNullable
 
     context(analysisSession: KaFirSession)
@@ -229,7 +230,7 @@ private class ConeTypeParameterTypePointer(
 
 private class ConeTypeVariableTypePointer(
     coneType: ConeTypeVariableType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
 ) : ConeTypePointer<ConeTypeVariableType> {
     private val debugName = coneType.typeConstructor.debugName
     private val isMarkedNullable = coneType.isMarkedNullable
@@ -237,7 +238,7 @@ private class ConeTypeVariableTypePointer(
     private val typeParameterSymbolPointer: KaSymbolPointer<KaTypeParameterSymbol>? = run {
         val typeParameterLookupTag = coneType.typeConstructor.originalTypeParameter as? ConeTypeParameterLookupTag
         if (typeParameterLookupTag != null) {
-            builder.classifierBuilder.buildTypeParameterSymbol(typeParameterLookupTag.symbol).createPointer()
+            analysisSession.firSymbolBuilder.classifierBuilder.buildTypeParameterSymbol(typeParameterLookupTag.symbol).createPointer()
         } else {
             null
         }
@@ -254,19 +255,21 @@ private class ConeTypeVariableTypePointer(
 
 private class ConeCapturedTypePointer(
     coneType: ConeCapturedType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
 ) : ConeTypePointer<ConeCapturedType> {
     private val captureStatus = coneType.constructor.captureStatus
-    private val lowerTypePointer = coneType.constructor.lowerType?.createPointer(builder, guard)
+    private val lowerTypePointer = coneType.constructor.lowerType?.createPointer(guard, analysisSession = analysisSession)
     private val isMarkedNullable = coneType.isMarkedNullable
-    private val coneProjectionPointer = ConeTypeProjectionPointer(coneType.constructor.projection, builder, guard)
-    private val constructorSupertypePointers = coneType.constructor.supertypes?.map { it.createPointer(builder, guard) }
+    private val coneProjectionPointer = ConeTypeProjectionPointer(coneType.constructor.projection, analysisSession, guard)
+    private val constructorSupertypePointers = coneType.constructor.supertypes?.map {
+        it.createPointer(guard, analysisSession = analysisSession)
+    }
 
     private val typeParameterSymbolPointer: KaSymbolPointer<KaTypeParameterSymbol>? = run {
         val typeParameterLookupTag = coneType.constructor.typeParameterMarker as? ConeTypeParameterLookupTag
         if (typeParameterLookupTag != null) {
-            builder.classifierBuilder.buildTypeParameterSymbol(typeParameterLookupTag.symbol).createPointer()
+            analysisSession.firSymbolBuilder.classifierBuilder.buildTypeParameterSymbol(typeParameterLookupTag.symbol).createPointer()
         } else {
             null
         }
@@ -313,11 +316,12 @@ private class ConeCapturedTypePointer(
 
 private class ConeIntersectionTypePointer(
     coneType: ConeIntersectionType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
 ) : ConeTypePointer<ConeIntersectionType> {
-    private val intersectedTypePointers = coneType.intersectedTypes.map { it.createPointer(builder, guard) }
-    private val upperBoundForApproximationPointer = coneType.upperBoundForApproximation?.createPointer(builder, guard)
+    private val intersectedTypePointers = coneType.intersectedTypes.map { it.createPointer(guard, analysisSession = analysisSession) }
+    private val upperBoundForApproximationPointer =
+        coneType.upperBoundForApproximation?.createPointer(guard, analysisSession = analysisSession)
 
     context(analysisSession: KaFirSession)
     override fun restore(guard: ConeTypeRecursionGuard): ConeIntersectionType? {
@@ -331,11 +335,11 @@ private class ConeIntersectionTypePointer(
 
 private abstract class AbstractConeFlexibleTypePointer<T : ConeFlexibleType>(
     coneType: ConeFlexibleType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
 ) : ConeTypePointer<T> {
-    private val lowerBoundPointer = coneType.lowerBound.createPointer(builder, guard)
-    private val upperBoundPointer = coneType.upperBound.createPointer(builder, guard)
+    private val lowerBoundPointer = coneType.lowerBound.createPointer(guard, analysisSession = analysisSession)
+    private val upperBoundPointer = coneType.upperBound.createPointer(guard, analysisSession = analysisSession)
 
     context(analysisSession: KaFirSession)
     override fun restore(guard: ConeTypeRecursionGuard): T? {
@@ -350,9 +354,9 @@ private abstract class AbstractConeFlexibleTypePointer<T : ConeFlexibleType>(
 
 private class ConeFlexibleTypePointer(
     coneType: ConeFlexibleType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
-) : AbstractConeFlexibleTypePointer<ConeFlexibleType>(coneType, builder, guard) {
+) : AbstractConeFlexibleTypePointer<ConeFlexibleType>(coneType, analysisSession, guard) {
     override fun restore(lowerBound: ConeRigidType, upperBound: ConeRigidType): ConeFlexibleType {
         return ConeFlexibleType(lowerBound, upperBound, isTrivial = false)
     }
@@ -360,9 +364,9 @@ private class ConeFlexibleTypePointer(
 
 private class ConeRawTypePointer(
     coneType: ConeFlexibleType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
-) : AbstractConeFlexibleTypePointer<ConeFlexibleType>(coneType, builder, guard) {
+) : AbstractConeFlexibleTypePointer<ConeFlexibleType>(coneType, analysisSession, guard) {
     override fun restore(lowerBound: ConeRigidType, upperBound: ConeRigidType): ConeFlexibleType {
         return ConeRawType.create(lowerBound, upperBound)
     }
@@ -370,10 +374,10 @@ private class ConeRawTypePointer(
 
 private class ConeDefinitelyNotNullTypePointer(
     coneType: ConeDefinitelyNotNullType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
 ) : ConeTypePointer<ConeDefinitelyNotNullType> {
-    private val originalTypePointer = coneType.original.createPointer(builder, guard)
+    private val originalTypePointer = coneType.original.createPointer(guard, analysisSession = analysisSession)
 
     context(analysisSession: KaFirSession)
     override fun restore(guard: ConeTypeRecursionGuard): ConeDefinitelyNotNullType? {
@@ -384,11 +388,11 @@ private class ConeDefinitelyNotNullTypePointer(
 
 private class ConeIntegerLiteralConstantTypePointer(
     coneType: ConeIntegerLiteralConstantType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
 ) : ConeTypePointer<ConeIntegerLiteralConstantType> {
     private val value = coneType.value
-    private val possibleTypePointers = coneType.possibleTypes.map { it.createPointer(builder, guard) }
+    private val possibleTypePointers = coneType.possibleTypes.map { it.createPointer(guard, analysisSession = analysisSession) }
     private val isUnsigned = coneType.isUnsigned
     private val isMarkedNullable = coneType.isMarkedNullable
 
@@ -413,13 +417,13 @@ private class ConeIntegerConstantOperatorTypePointer(
 
 private class ConeErrorTypePointer(
     coneType: ConeErrorType,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard,
 ) : ConeTypePointer<ConeErrorType> {
     private val isUninferredParameter = coneType.isUninferredParameter
-    private val coneDiagnosticPointer = ConeDiagnosticPointer.create(coneType.diagnostic, builder)
-    private val delegatedTypePointer = coneType.delegatedType?.createPointer(builder, guard)
-    private val typeArgumentPointers = coneType.typeArguments.map { ConeTypeProjectionPointer(it, builder, guard) }
+    private val coneDiagnosticPointer = ConeDiagnosticPointer.create(coneType.diagnostic, analysisSession = analysisSession)
+    private val delegatedTypePointer = coneType.delegatedType?.createPointer(guard, analysisSession = analysisSession)
+    private val typeArgumentPointers = coneType.typeArguments.map { ConeTypeProjectionPointer(it, analysisSession, guard) }
     private val nullable = coneType.nullable
 
     context(analysisSession: KaFirSession)
@@ -454,11 +458,11 @@ private object ConeNeverRestoringTypePointer : ConeTypePointer<ConeKotlinType> {
 
 internal class ConeTypeProjectionPointer(
     projection: ConeTypeProjection,
-    builder: KaSymbolByFirBuilder,
+    analysisSession: KaFirSession,
     guard: ConeTypeRecursionGuard = ConeTypeRecursionGuard(),
 ) {
     private val kind = projection.kind
-    private val typePointer: ConeTypePointer<*>? = projection.type?.createPointer(builder, guard)
+    private val typePointer: ConeTypePointer<*>? = projection.type?.createPointer(guard, analysisSession = analysisSession)
 
     context(analysisSession: KaFirSession)
     fun restore(guard: ConeTypeRecursionGuard = ConeTypeRecursionGuard()): ConeTypeProjection? {
