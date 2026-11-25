@@ -49,7 +49,7 @@ internal fun annotationsByClassId(
     annotationContainer: FirAnnotationContainer = firSymbol.fir,
 ): List<KaAnnotation> {
     val session = analysisSession.firSession
-    if (firSymbol.isFromCompilerRequiredAnnotationsPhase(classId, analysisSession.firSession)) {
+    if (firSymbol.isFromCompilerRequiredAnnotationsPhase(classId, session)) {
         // This is safe to iterate over the collection without indices since all annotations after 582b640b commit
         // declared as `MutableOrEmptyList<FirAnnotation>`, so:
         // - `replaceAnnotations` replaces the entire collection without modifications
