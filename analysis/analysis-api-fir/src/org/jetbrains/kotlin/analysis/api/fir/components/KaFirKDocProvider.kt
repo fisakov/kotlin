@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.analysis.api.fir.components
 
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.analysis.api.fir.KaFirSession
+import org.jetbrains.kotlin.analysis.api.fir.entryPointImplementation
 import org.jetbrains.kotlin.analysis.api.fir.utils.firSymbol
 import org.jetbrains.kotlin.analysis.api.internals.KaInternalsKDocProvider
 import org.jetbrains.kotlin.analysis.api.symbols.*
@@ -31,7 +32,7 @@ internal class KaFirKDocProvider(
     override fun findKDoc(declaration: KtDeclaration): KDocCommentDescriptor? =
         declaration.lookupOwnedKDoc() ?: declaration.lookupKDocInParent()
 
-    override fun findKDoc(symbol: KaDeclarationSymbol): KDocCommentDescriptor? = context(analysisSession) {
+    override fun findKDoc(symbol: KaDeclarationSymbol): KDocCommentDescriptor? = entryPointImplementation {
         val ktElement = symbol.psi?.navigationElement as? KtDeclaration
         ktElement?.let { findKDoc(it) }?.let { return it }
 
