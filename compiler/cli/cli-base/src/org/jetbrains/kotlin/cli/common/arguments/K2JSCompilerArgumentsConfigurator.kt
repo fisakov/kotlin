@@ -5,13 +5,10 @@
 
 package org.jetbrains.kotlin.cli.common.arguments
 
-import org.jetbrains.kotlin.cli.common.arguments.K2JsArgumentConstants.MODULE_ES
-import org.jetbrains.kotlin.cli.js.targetVersion
 import org.jetbrains.kotlin.config.AnalysisFlag
 import org.jetbrains.kotlin.config.AnalysisFlags.allowFullyQualifiedNameInKClass
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersion
-import org.jetbrains.kotlin.js.config.supportsPerFileGranularity
 
 class K2JSCompilerArgumentsConfigurator : CommonKlibBasedCompilerArgumentsConfigurator() {
     override fun configureAnalysisFlags(
