@@ -76,13 +76,15 @@ class JvmDependenciesIndexImpl(roots: List<JavaRoot>) : JvmDependenciesIndexBase
     ): Collection<BinaryClassFileHandle> {
         val results = mutableListOf<BinaryClassFileHandle>()
         val fileNameWithoutExtension = JvmClassFileNames.fileNameWithoutExtension(classId.relativeClassName)
+        val extensions = acceptedExtensions.extensions.toList()
+        val fileNames = extensions.map { JvmClassFileNames.fileName(fileNameWithoutExtension, it.extension) }
 
         traverseIndex(classId.packageFqName, acceptedExtensions.rootTypes) { directoryInRoot, root ->
-            for (ext in acceptedExtensions) {
-                if (ext.rootType != root.type) continue
+            for (i in extensions.indices) {
+                if (extensions[i].rootType != root.type) continue
 
                 val file = directoryInRoot
-                    .findChild(JvmClassFileNames.fileName(fileNameWithoutExtension, ext.extension))
+                    .findChild(fileNames[i])
                     ?.takeIf { it.isValid }
 
                 if (file != null) {
