@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.diagnostics.ConeInapplicableWrongReceiver
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.scopes.impl.typeAliasConstructorInfo
-import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.types.*
 
@@ -81,7 +81,7 @@ object FirUpperBoundViolatedQualifiedAccessExpressionChecker : FirQualifiedAcces
             typeArguments: List<ConeTypeProjection>,
             mustRelaxDueToArgumentInteractionsBug: Boolean,
         ) {
-            val typeAliasConstructorInfo = (calleeSymbol as? FirConstructorSymbol)?.typeAliasConstructorInfo
+            val typeAliasConstructorInfo = (calleeSymbol as? FirFunctionSymbol<*>)?.typeAliasConstructorInfo
 
             if (typeAliasConstructorInfo != null) {
                 val typealiasType: ConeClassLikeType = typeAliasConstructorInfo.typeAliasSymbol.defaultType()

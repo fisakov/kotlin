@@ -46,7 +46,7 @@ data class TypeAliasConstructorInfo<T : FirFunction>(
 
 var <T : FirFunction> T.typeAliasConstructorInfo: TypeAliasConstructorInfo<T>? by FirDeclarationDataRegistry.data(TypeAliasConstructorInfoKey)
 
-val FirConstructorSymbol.typeAliasConstructorInfo: TypeAliasConstructorInfo<*>?
+val FirFunctionSymbol<*>.typeAliasConstructorInfo: TypeAliasConstructorInfo<*>?
     get() = fir.typeAliasConstructorInfo
 
 /**
