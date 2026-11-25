@@ -79,7 +79,7 @@ internal fun FirCallableSymbol<*>.computeImportableName(): FqName? {
 }
 
 context(analysisSession: KaFirSession)
-internal fun FirExpression.asKaInitializerValue( forAnnotationDefaultValue: Boolean): KaInitializerValue {
+internal fun FirExpression.asKaInitializerValue(forAnnotationDefaultValue: Boolean): KaInitializerValue {
     val ktExpression = psi as? KtExpression
     val evaluated = FirCompileTimeConstantEvaluator.evaluateAsKtConstantValue(this, analysisSession.firSession)
 
