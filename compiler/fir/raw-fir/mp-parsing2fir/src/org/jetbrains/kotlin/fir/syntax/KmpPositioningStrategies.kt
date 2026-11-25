@@ -5,8 +5,8 @@
 
 package org.jetbrains.kotlin.fir.syntax
 
-import org.jetbrains.kotlin.diagnostics.PositioningStrategyKind
 import org.jetbrains.kotlin.diagnostics.PositioningStrategyKinds
+import org.jetbrains.kotlin.diagnostics.PositioningStrategyRegistry
 
 /**
  * Stubs of the KMP parse tree implementations of all [PositioningStrategyKinds],
@@ -15,16 +15,7 @@ import org.jetbrains.kotlin.diagnostics.PositioningStrategyKinds
  * TODO: implement the strategies based on LightTreePositioningStrategies, KT-91322
  */
 @Suppress("UNUSED") // Most strategies are only accessed via `kindToStrategy`, where they are registered by `registerAs`
-object KmpPositioningStrategies {
-    val kindToStrategy: Map<PositioningStrategyKind, KmpPositioningStrategy>
-        field: MutableMap<PositioningStrategyKind, KmpPositioningStrategy> = mutableMapOf()
-
-    private fun <T : KmpPositioningStrategy> T.registerAs(kind: PositioningStrategyKind): T {
-        require(kind !in kindToStrategy) { "${kind::class.simpleName} is already registered" }
-        kindToStrategy[kind] = this
-        return this
-    }
-
+object KmpPositioningStrategies : PositioningStrategyRegistry<KmpPositioningStrategy>() {
     val DEFAULT: KmpPositioningStrategy = KmpPositioningStrategy()
         .registerAs(PositioningStrategyKinds.DEFAULT)
 
