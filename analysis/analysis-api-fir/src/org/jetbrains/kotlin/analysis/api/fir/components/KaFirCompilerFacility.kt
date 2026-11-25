@@ -69,18 +69,19 @@ internal class KaFirCompilerFacility(
 ) : KaFirSessionComponent(), KaInternalsCompilerFacility {
     override fun compile(file: KtFile, options: KaCompilationOptions): KaCompilationResult = entryPointImplementation(file) {
         val opts = options as KaFirCompilationOptions
-        return entryPointImplementation(file) {
-            compileWithRetry(file, opts)
-        }
+        compileWithRetry(file, opts)
     }
 
     @OptIn(LLFirInternals::class)
     override fun createCompilationOptions(init: KaCompilationOptionsBuilder.() -> Unit): KaCompilationOptions = entryPointImplementation {
-        return KaFirCompilationOptionsBuilder(token, CompilerConfiguration.createForAnalysisApi()).apply(init).build()
+        KaFirCompilationOptionsBuilder(token, CompilerConfiguration.createForAnalysisApi()).apply(init).build()
     }
 
-    override fun modify(options: KaCompilationOptions, init: KaCompilationOptionsBuilder.() -> Unit): KaCompilationOptions = entryPointImplementation {
-        return (options as KaFirCompilationOptions).modify(init)
+    override fun modify(
+        options: KaCompilationOptions,
+        init: KaCompilationOptionsBuilder.() -> Unit,
+    ): KaCompilationOptions = entryPointImplementation {
+        (options as KaFirCompilationOptions).modify(init)
     }
 
     context(analysisSession: KaFirSession)
