@@ -13,7 +13,6 @@ import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
-import org.jetbrains.kotlin.ir.backend.js.JsCommonBackendContext
 import org.jetbrains.kotlin.ir.backend.js.JsIrBackendContext
 import org.jetbrains.kotlin.ir.backend.js.ir.JsIrBuilder
 import org.jetbrains.kotlin.ir.backend.js.lower.calls.EqualityAndComparisonCallsTransformer
@@ -102,7 +101,7 @@ class JsBlockDecomposerLowering(private val context: JsIrBackendContext) : BodyL
 }
 
 private class BlockDecomposerTransformer(
-    private val context: JsCommonBackendContext,
+    private val context: JsIrBackendContext,
     private val unreachableExpression: () -> IrExpression
 ) : IrElementTransformerVoid() {
     private lateinit var function: IrDeclarationParent
@@ -757,7 +756,7 @@ private class BlockDecomposerTransformer(
 
             (newStatements.singleOrNull() as? IrExpression)?.let { expression ->
                 // Unwrapping the block may result in worse debug info, so only do it when compiling for production.
-                if (context.configuration.artifactConfigurations.all { it.production }) {
+                if (!context.isDebugBuild) {
                     return expression
                 }
             }
