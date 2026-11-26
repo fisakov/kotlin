@@ -8,6 +8,7 @@ package org.jetbrains.kotlin
 import org.jetbrains.kotlin.cli.AbstractCliTest
 import org.jetbrains.kotlin.generators.dsl.junit5.generateTestGroupSuiteWithJUnit5
 import org.jetbrains.kotlin.generators.util.TestGeneratorUtil
+import org.jetbrains.kotlin.integration.AbstractAntTaskTest
 import org.jetbrains.kotlin.multiplatform.AbstractMultiPlatformIntegrationTest
 
 fun main(args: Array<String>) {
@@ -41,6 +42,10 @@ fun main(args: Array<String>) {
                 model("cli/js", extension = "args", testMethod = "doJsTest", recursive = false)
                 model("cli/wasm", extension = "args", testMethod = "doWasmTest", recursive = false)
                 model("cli/metadata", extension = "args", testMethod = "doMetadataTest", recursive = false)
+            }
+
+            testClass<AbstractAntTaskTest> {
+                model("integration/ant/jvm", extension = null, recursive = false)
             }
         }
 

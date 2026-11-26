@@ -366,6 +366,7 @@ include(
     ":kotlin-compiler-native-image",
     ":kotlin-klib-abi-reader",
     ":kotlin-reflect",
+    ":kotlin-ant",
     ":compiler:tests-java8",
     ":compiler:tests-different-jdk",
     ":compiler:tests-spec",
@@ -810,6 +811,7 @@ project(":kotlin-daemon-client").projectDir = File("$rootDir/compiler/daemon/dae
 project(":kotlin-daemon-tests").projectDir = File("$rootDir/compiler/daemon/daemon-tests")
 project(":kotlin-compiler-runner-unshaded").projectDir = File("$rootDir/compiler/compiler-runner-unshaded")
 project(":kotlin-compiler-runner").projectDir = File("$rootDir/compiler/compiler-runner")
+project(":kotlin-ant").projectDir = File("$rootDir/ant")
 project(":compiler:ir.tree").projectDir = File("$rootDir/compiler/ir/ir.tree")
 project(":compiler:ir.tree:tree-generator").projectDir = File("$rootDir/compiler/ir/ir.tree/tree-generator")
 project(":compiler:ir.psi2ir").projectDir = File("$rootDir/compiler/ir/ir.psi2ir")
