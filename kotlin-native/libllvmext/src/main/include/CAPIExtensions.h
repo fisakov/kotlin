@@ -53,8 +53,8 @@ LLVMErrorRef LLVMKotlinRunPasses(LLVMModuleRef M, const char *Passes,
 /// With `GlobalISel`, functions it cannot select silently fall back to
 /// SelectionDAG.
 typedef enum {
-  LLVMKotlinInstructionSelectorSelectionDAG = 0,
-  LLVMKotlinInstructionSelectorGlobalISel = 1,
+  LLVMKotlinInstructionSelectorSelectionDAG = 1,
+  LLVMKotlinInstructionSelectorGlobalISel = 2,
 } LLVMKotlinInstructionSelector;
 
 /// Create a target machine for `TargetTriple` (normalized first).

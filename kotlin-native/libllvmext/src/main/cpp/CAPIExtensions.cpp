@@ -203,17 +203,25 @@ LLVMTargetMachineRef LLVMKotlinCreateTargetMachine(
   llvm::CodeGenOptLevel OptLevel = llvm::unwrap(OL);
 
   llvm::Triple TT{NormalizedTriple};
-  bool UseGlobalISel = Selector == LLVMKotlinInstructionSelectorGlobalISel &&
-                       isGlobalISelSupported(TT, CodeModel);
 
   // Inherit the compiler flags from clang contained in konan.properties.
   llvm::TargetOptions TO{};
   TO.UseInitArray = true;
 
-  if (UseGlobalISel) {
-    TO.EnableGlobalISel = true;
-    // Fall back to SelectionDAG if GlobalISel fails.
-    TO.GlobalISelAbort = llvm::GlobalISelAbortMode::Disable;
+  switch (Selector) {
+      case LLVMKotlinInstructionSelectorSelectionDAG:
+          TO.EnableFastISel = false;
+          TO.EnableGlobalISel = false;
+          break;
+      case LLVMKotlinInstructionSelectorGlobalISel:
+          // Fall back to SelectionDAG if GlobalISel fails.
+          TO.EnableGlobalISel = isGlobalISelSupported(TT, CodeModel);
+          TO.EnableFastISel = false;
+          TO.GlobalISelAbort = llvm::GlobalISelAbortMode::Disable;
+          break;
+      default:
+          TO.EnableFastISel = true;
+          break;
   }
 
   if (TT.isOSWindows() || TT.isOSLinux()) {
