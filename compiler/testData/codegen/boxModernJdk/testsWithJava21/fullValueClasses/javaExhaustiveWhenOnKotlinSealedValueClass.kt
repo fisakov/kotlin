@@ -1,7 +1,5 @@
-// ENABLE_JVM_PREVIEW
-
 // LANGUAGE: +FullValueClasses
-// FILE: javaExhaustiveWhenOnKotlinSealedClass.kt
+// FILE: javaExhaustiveWhenOnKotlinSealedValueClass.kt
 sealed value class KS
 value class KO(val x: Int) : KS()
 class KK() : KS()

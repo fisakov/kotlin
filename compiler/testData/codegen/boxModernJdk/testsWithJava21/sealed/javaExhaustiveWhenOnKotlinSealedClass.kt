@@ -1,5 +1,3 @@
-// ENABLE_JVM_PREVIEW
-
 // FILE: javaExhaustiveWhenOnKotlinSealedClass.kt
 sealed class KS
 class KO : KS()
