@@ -1,12 +1,10 @@
 /*
- * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package org.jetbrains.kotlin.util
+package org.jetbrains.kotlin.gradle.tasks
 
-import org.jetbrains.kotlin.utils.ResolvedDependencies
-import org.jetbrains.kotlin.utils.ResolvedDependenciesSupport
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -30,9 +28,7 @@ class ResolvedDependenciesSupportTest {
         |
         """.trimMargin()
 
-        (
-            val deserializedModules = modules, val sourceCodeModuleId
-        ) =
+        val (deserializedModules, sourceCodeModuleId) =
             ResolvedDependenciesSupport.deserialize(originalText) { lineNo, line ->
                 Assertions.fail("Unexpected failure at line $lineNo: $line")
             }
@@ -52,9 +48,7 @@ class ResolvedDependenciesSupportTest {
         |
         """.trimMargin()
 
-        (
-            val deserializedModules = modules, val sourceCodeModuleId
-        ) =
+        val (deserializedModules, sourceCodeModuleId) =
             ResolvedDependenciesSupport.deserialize(originalText) { lineNo, line ->
                 Assertions.fail("Unexpected failure at line $lineNo: $line")
             }
@@ -90,9 +84,7 @@ class ResolvedDependenciesSupportTest {
         |
         """.trimMargin()
 
-        (
-            val deserializedModules = modules, val sourceCodeModuleId
-        ) =
+        val (deserializedModules, sourceCodeModuleId) =
             ResolvedDependenciesSupport.deserialize(originalText) { lineNo, line ->
                 Assertions.fail("Unexpected failure at line $lineNo: $line")
             }
@@ -112,9 +104,7 @@ class ResolvedDependenciesSupportTest {
         |
         """.trimMargin()
 
-        (
-            val deserializedModules = modules, val sourceCodeModuleId
-        ) =
+        val (deserializedModules, sourceCodeModuleId) =
             ResolvedDependenciesSupport.deserialize(originalText) { lineNo, line ->
                 Assertions.fail("Unexpected failure at line $lineNo: $line")
             }
