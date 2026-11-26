@@ -21,27 +21,28 @@ import org.jetbrains.kotlin.ir.util.SetDeclarationsParentVisitor
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import kotlin.collections.plus
 
+/**
+ * Returns `true` if `@Test` from [irFile] need to be registered.
+ *
+ * Only the tests of the modules compiled from sources (including the `-Xinclude`d libraries) are to be registered.
+ * Usually, the test initializers of the other libraries don't even get here: being private and unreferenced they aren't
+ * deserialized. But when building with caches a library is deserialized in full, so its test initializers
+ * must be skipped explicitly, otherwise its tests would leak to the test binaries depending on that library.
+ */
+internal fun NativeLoweringContext.shouldProcessFileWithTests(irFile: IrFile): Boolean {
+    val sourceModules = configuration.sourcesModules
+            ?: error("sourcesModules must have been set in the configuration by the frontend phase")
+    return irFile.moduleDescriptor in sourceModules
+}
+
 internal class TestsInitializer(private val context: NativeLoweringContext) : FileLoweringPass {
     private val symbols = context.symbols
 
-    private val sourcesModules = context.configuration.sourcesModules
-            ?: error("sourcesModules must have been set in the configuration by the frontend phase")
-
-    /**
-     * Only the tests of the modules compiled from sources (including the `-Xinclude`d libraries) are to be registered.
-     * Usually, the test initializers of the other libraries don't even get here: being private and unreferenced they aren't
-     * deserialized. But when building with caches a library is deserialized in full, so its test initializers
-     * must be skipped explicitly, otherwise its tests would leak to the test binaries depending on that library.
-     * Note: the same skip is done for [TestsDumper][org.jetbrains.kotlin.backend.konan.lower.TestsDumper] as well.
-     */
-    private fun shouldProcessFile(irFile: IrFile): Boolean =
-            irFile.moduleDescriptor in sourcesModules
-
     override fun lower(irFile: IrFile) {
         for (idx in irFile.declarations.indices) {
+            if (!context.shouldProcessFileWithTests(irFile)) return
             val function = irFile.declarations[idx] as? IrSimpleFunction ?: continue
             if (!function.hasAnnotation(symbols.testInitializer)) continue
-            if (!shouldProcessFile(irFile)) return
             irFile.declarations[idx] = context.irFactory.buildField {
                 startOffset = function.startOffset
                 endOffset = function.endOffset
