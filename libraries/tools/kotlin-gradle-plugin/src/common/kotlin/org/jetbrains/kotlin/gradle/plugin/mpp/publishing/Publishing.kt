@@ -142,12 +142,7 @@ private fun createTargetPublications(project: Project, publishing: PublishingExt
                             if (!crossCompilationSupported) return@enabled false
                         }
                         KotlinPluginLifecycle.Stage.AfterFinaliseDsl.await()
-                        if (kotlinTarget.isStoredInKotlinArchive.get()) {
-                            (kotlinTarget as? AbstractKotlinTarget)?.reportMavenPublicationIsNoop()
-                            false
-                        } else {
-                            true
-                        }
+                        !kotlinTarget.isStoredInKotlinArchive.get()
                     }
                 )
                 else -> kotlinTarget.createTargetSpecificMavenPublications(publishing.publications)

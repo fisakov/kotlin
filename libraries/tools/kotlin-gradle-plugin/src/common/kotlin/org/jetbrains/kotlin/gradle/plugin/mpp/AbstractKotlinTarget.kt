@@ -181,17 +181,13 @@ abstract class AbstractKotlinTarget(
     private val publicationConfigureActions: DomainObjectSet<Action<MavenPublication>> = project.objects
         .domainObjectSet(Action::class.java) as DomainObjectSet<Action<MavenPublication>>
 
-    private class MavenPublicationCallTrace : Throwable()
-    private val mavenPublicationCallTraces: MutableList<MavenPublicationCallTrace> = mutableListOf()
-
-    internal fun reportMavenPublicationIsNoop() {
-        for (trace in mavenPublicationCallTraces) {
-            project.reportDiagnostic(KotlinToolingDiagnostics.MavenPublicationIgnoredForTargetInKotlinArchive(targetName, trace))
-        }
-    }
-
     override fun mavenPublication(action: Action<MavenPublication>) {
-        mavenPublicationCallTraces.add(MavenPublicationCallTrace())
+        val trace = Throwable()
+        project.launchInStage(KotlinPluginLifecycle.Stage.AfterFinaliseDsl) {
+            if (isStoredInKotlinArchive.get()) {
+                project.reportDiagnostic(KotlinToolingDiagnostics.MavenPublicationIgnoredForTargetInKotlinArchive(targetName, trace))
+            }
+        }
         publicationConfigureActions.add(action)
     }
 
@@ -206,3 +202,4 @@ abstract class AbstractKotlinTarget(
 
 internal fun KotlinTarget.disambiguateName(simpleName: String) =
     lowerCamelCaseName(targetName, simpleName)
+

@@ -457,9 +457,11 @@ internal object KotlinToolingDiagnostics {
         operator fun invoke(targetName: String, trace: Throwable) = build(throwable = trace) {
             title("Target Maven Publication Configuration Is Ignored")
                 .description(
-                    "Target '$targetName' is stored in the Kotlin archive (.kar). KGP does not create a Maven publication for this target. " +
-                            "Thus, the 'mavenPublication {}' call for this target has no effect. " +
-                            "Use '--stacktrace' to see the location of the call."
+                    """
+                            |Target '$targetName' is published as part of Kotlin archive (.kar). 
+                            |Kotlin Gradle Plugin does not create a dedicated Maven publication for this target.
+                            |The 'mavenPublication {}' call for this target has no effect. 
+                            """.trimMargin()
                 )
                 .solution("Configure the root 'kotlinMultiplatform' publication, or remove the 'mavenPublication {}' call.")
         }
