@@ -8,8 +8,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import java.nio.file.Path
 
 class FastJarHandler(val fileSystem: FastJarFileSystem, path: String) {
-    internal val archive: JarArchive = fileSystem.archives[path]
+    private val archive: JarArchive = fileSystem.archives[path]
 
+    /** The archive path only for the VFS-based implementation [FastJarVirtualFile]. */
     internal val path: Path
         get() = archive.path
 

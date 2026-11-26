@@ -15,8 +15,11 @@ import java.nio.file.StandardOpenOption
  * The archive [path] with its parsed central directory and manifest.
  */
 class JarArchive(
-    /** The path of the archive in the default file system, as only its files can be mapped. */
-    val path: Path,
+    /**
+     * The path of the archive in the default file system, as only its files can be mapped.
+     * Read outside this class only by the VFS-based implementation [FastJarVirtualFile].
+     */
+    internal val path: Path,
     unmapBuffer: MappedByteBuffer.() -> Unit,
     onInvalidArchive: (Path, Exception) -> Unit,
     private val readContents: (Path, ZipEntryDescription) -> ByteArray,
