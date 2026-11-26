@@ -76,12 +76,6 @@ public class AntTaskTestGenerated extends AbstractAntTaskTest {
   }
 
   @Test
-  @TestMetadata("jvmClasspath")
-  public void testJvmClasspath() {
-    runTest("compiler/testData/integration/ant/jvm/jvmClasspath/");
-  }
-
-  @Test
   @TestMetadata("kt11995")
   public void testKt11995() {
     runTest("compiler/testData/integration/ant/jvm/kt11995/");

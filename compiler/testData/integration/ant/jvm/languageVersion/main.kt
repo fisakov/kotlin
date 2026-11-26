@@ -1,7 +1,3 @@
-fun test() {
-    while (true) {
-        run {
-            break
-        }
-    }
+class Outer {
+    typealias Inner = String
 }

@@ -5,7 +5,6 @@
         <mkdir dir="${temp}/classes"/>
         <javac srcdir="${test.data}" destdir="${temp}/classes" includeantruntime="false">
             <withKotlin>
-                <compilerarg line="-Xuse-fir-lt=false"/>
             </withKotlin>
         </javac>
         <jar destfile="${temp}/hello.jar">

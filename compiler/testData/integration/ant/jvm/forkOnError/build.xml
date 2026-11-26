@@ -20,7 +20,6 @@
             <jvmarg value="-Xmx128m"/>
             <jvmarg value="-javaagent:${temp}/premain.jar"/>
             <compilerarg value="-Werror"/>
-            <compilerarg line="-Xuse-fir-lt=false"/>
             <compilerarg line="-XXLanguage:+EnableDfaWarningsInK2"/>
         </kotlinc>
     </target>

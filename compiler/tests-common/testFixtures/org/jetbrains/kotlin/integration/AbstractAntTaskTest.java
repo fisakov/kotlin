@@ -54,6 +54,10 @@ public abstract class AbstractAntTaskTest extends KotlinIntegrationTestBase {
     @NotNull
     protected String normalizeOutput(@NotNull File testDataDir, @NotNull String content) {
         return super.normalizeOutput(testDataDir, content)
-                .replaceAll("Total time: .+\n", "Total time: [time]\n");
+                .replaceAll("Total time: .+\n", "Total time: [time]\n")
+                // The list of JDK modules depends on the JDK the compiler runs on
+                .replaceAll("(\\[kotlinc] logging: loading modules: )\\[.*]", "$1[...]")
+                // In verbose mode, the compiler dumps its whole configuration, which contains identity hash codes
+                .replaceAll("(\\[kotlinc] info: )[A-Z_]+: .*(\n {2}\\[kotlinc]( .*)?)*", "$1[compiler configuration]");
     }
 }

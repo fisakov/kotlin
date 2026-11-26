@@ -11,6 +11,9 @@ build:
     [javac] fun intArrayOf(vararg elements: Int): IntArray
     [javac] @AnnInt(intArrayOf(1, 2))
     [javac]         ^^^^^^^^^^
+    [javac] [TestData]/literals.kt:9:9: error: annotation argument must be a compile-time constant.
+    [javac] @AnnInt(intArrayOf(1, 2))
+    [javac]         ^^^^^^^^^^^^^^^^
     [javac] [TestData]/myArrayOf.kt:3:8: error: conflicting overloads:
     [javac] fun intArrayOf(vararg elements: Int): IntArray
     [javac] public fun intArrayOf(vararg elements: Int): IntArray = TODO()

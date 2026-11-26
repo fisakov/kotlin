@@ -3,7 +3,6 @@
 
     <target name="build">
         <kotlinc src="${test.data}" output="${temp}">
-            <compilerarg line="-Xuse-fir-lt=false"/>
         </kotlinc>
     </target>
 </project>
