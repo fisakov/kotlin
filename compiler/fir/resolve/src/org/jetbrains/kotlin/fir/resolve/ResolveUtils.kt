@@ -545,7 +545,33 @@ fun BodyResolveComponents.transformExpressionUsingSmartcastInfo(
     val allUpperTypes = if (originalType !is ConeStubType) smartcastStatement.upperTypes + originalType else smartcastStatement.upperTypes
 
     val intersectedUpperType = when {
-        allUpperTypes.any { it !is ConeDynamicType } -> ConeTypeIntersector.intersectTypes(session.typeContext, allUpperTypes)
+        allUpperTypes.any { it !is ConeDynamicType } -> {
+            var intersected = ConeTypeIntersector.intersectTypes(session.typeContext, allUpperTypes)
+
+            if (intersected is ConeUnionType &&
+                smartcastStatement.lowerTypesStability == smartcastStatement.upperTypesStability
+            ) {
+                val lowerTypes = smartcastStatement.lowerTypes.mapNotNull {
+                    when (it) {
+                        is Cone -> it.type
+                        is Symbol -> (it.symbol as? FirClassLikeSymbol)?.defaultType()
+                        is BooleanLiteral -> null
+                    }
+                }
+
+                if (lowerTypes.isNotEmpty()) {
+                    intersected = ConeTypeUnifier.unify(
+                        intersected.primaryType.takeUnless { type -> lowerTypes.any { type.isSubtypeOf(it) } }
+                            ?: StandardTypes.Nothing,
+                        intersected.richErrorTypes.filterNot { type -> lowerTypes.any { type.isSubtypeOf(it) } },
+                        intersected.attributes,
+                        session.typeContext,
+                    )
+                }
+            }
+
+            intersected
+        }
         else -> null
     }.takeUnless {
         it == originalType && it !is ConeDynamicType

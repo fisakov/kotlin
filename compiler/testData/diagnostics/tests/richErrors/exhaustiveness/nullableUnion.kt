@@ -33,7 +33,7 @@ fun nullableIsCheck2(x: (String | Foo | Bar)?): Int = when (x) {
 fun nullableUnion(x: (Foo | Bar)?): Int = when (x) {
     is Foo -> 1
     is Bar -> 2
-    null -> 3
+    <!SENSELESS_COMPARISON!>null<!> -> 3
 }
 
 fun nullableUnionMissingNull(x: (Foo | Bar)?): Int = <!NO_ELSE_IN_WHEN!>when<!> (x) {
