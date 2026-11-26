@@ -24,8 +24,7 @@ Note: The IntelliJ Kotlin plugin is in a separate repository (JetBrains/intellij
 ```
 
 "On demand" means: in modules that generate runners into the build directory (e.g. `compiler/jvm.tests` → `build/tests-gen/`),
-the module's own `generateTests` task is wired into test compilation and its inputs include the test data file list,
-so runners are regenerated automatically whenever that module's tests are compiled or run — including when tests are launched from the IDE.
+runners are regenerated automatically whenever that module's tests are compiled or run.
 Running the root `./gradlew generateTests` separately is only needed for modules that keep generated runners in the repository
 (those register in the aggregate task), e.g. Analysis API.
  
@@ -55,7 +54,7 @@ If you're not sure about the area, ask the user.
 | Build Tools Libraries    |                        | build-tools/libraries/                                    | [AGENTS.md](../build-tools/libraries/AGENTS.md)                                  |
 | Compiler plugins         |                        | plugins/                                                  | —                                                                                |
 | Dependency updates       |                        | gradle/                                                   | [ReadMe.md](../ReadMe.md#updating-a-dependency)                                  |
-| FIR (K2 frontend)        | `Fir*`                 | compiler/fir/                                             | [AGENTS.md](../compiler/fir/AGENTS.md)                                               |
+| FIR (K2 frontend)        | `Fir*`                 | compiler/fir/                                             | [AGENTS.md](../compiler/fir/AGENTS.md)                                           |
 | IR                       | `Ir*`                  | compiler/ir/                                              | [AGENTS.md](../compiler/AGENTS.md)                                               |
 | Kotlin Gradle Plugin     |                        | libraries/tools/kotlin-gradle-plugin/                     | [AGENTS.md](../libraries/tools/kotlin-gradle-plugin/AGENTS.md)                   |
 | Kotlin Gradle Plugin API |                        | libraries/tools/kotlin-gradle-plugin-api/                 | [AGENTS.md](../libraries/tools/kotlin-gradle-plugin-api/AGENTS.md)               |
